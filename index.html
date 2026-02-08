@@ -2,8 +2,8 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>日照計算シミュレーター Pro v4</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>日照計算シミュレーター Pro v5</title>
     <style>
         :root {
             --primary: #2563eb;
@@ -12,7 +12,7 @@
             --danger: #dc2626;
             --bg: #f1f5f9;
         }
-        body { font-family: "Helvetica Neue", Arial, sans-serif; line-height: 1.6; color: #1e293b; background-color: var(--bg); margin: 0; padding: 10px; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; color: #1e293b; background-color: var(--bg); margin: 0; padding: 10px; }
         .container { max-width: 950px; margin: 0 auto; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 20px; }
         h1 { font-size: 1.4rem; color: #0f172a; text-align: center; margin-bottom: 1.5rem; }
@@ -20,28 +20,42 @@
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; }
         .field { margin-bottom: 10px; }
         label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; display: flex; align-items: center; }
-        input, select { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
+        input, select { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; box-sizing: border-box; font-size: 16px; /* 16px以上にするとiOSでズームしません */ }
         
-        /* Tooltip Style */
-        .info-trigger { margin-left: 8px; cursor: help; background: var(--secondary); color: white; width: 18px; height: 18px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; position: relative; }
-        .info-content {
-            display: none; position: absolute; top: 25px; left: 50%; transform: translateX(-50%);
-            width: 340px; background: white; color: #333; padding: 12px; border-radius: 8px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2); z-index: 100; border: 1px solid #ddd; font-weight: normal; font-size: 0.7rem;
+        /* Tooltip Style (Safari/iOS 修正版) */
+        .info-trigger { 
+            margin-left: 8px; cursor: pointer; background: var(--secondary); color: white; 
+            width: 22px; height: 22px; border-radius: 50%; display: inline-flex; 
+            align-items: center; justify-content: center; font-size: 14px; 
+            border: none; -webkit-appearance: none;
         }
-        .info-trigger:hover .info-content { display: block; }
-        .info-table { width: 100%; border-collapse: collapse; margin-top: 5px; line-height: 1.2; }
-        .info-table th, .info-table td { border: 1px solid #eee; padding: 4px; text-align: left; }
-        .info-table th { background: #f8fafc; font-size: 0.65rem; }
+        
+        /* モーダル風の表示に変更 (iOSでの確実な表示のため) */
+        .info-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;
+        }
+        .info-modal {
+            background: white; width: 90%; max-width: 400px; max-height: 80vh; 
+            overflow-y: auto; padding: 20px; border-radius: 12px; position: relative;
+        }
+        .close-modal {
+            display: block; width: 100%; padding: 10px; background: var(--secondary);
+            color: white; text-align: center; border-radius: 6px; margin-top: 15px; text-decoration: none; font-weight: bold;
+        }
+
+        .info-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; margin-top: 10px; }
+        .info-table th, .info-table td { border: 1px solid #eee; padding: 6px; text-align: left; }
+        .info-table th { background: #f8fafc; }
 
         button.main-btn { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 1.1rem; font-weight: bold; margin-top: 10px; }
         
         .tabs { display: flex; gap: 5px; margin-top: 20px; border-bottom: 2px solid #e2e8f0; }
-        .tab-btn { padding: 10px 20px; border: none; background: none; cursor: pointer; color: var(--secondary); border-bottom: 2px solid transparent; }
+        .tab-btn { padding: 10px 20px; border: none; background: none; cursor: pointer; color: var(--secondary); border-bottom: 2px solid transparent; flex: 1; }
         .tab-btn.active { color: var(--primary); border-bottom: 2px solid var(--primary); font-weight: bold; }
 
         .res-display { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; margin-top: 10px; }
-        .res-item { background: #eff6ff; padding: 15px; border-radius: 8px; border-left: 5px solid var(--primary); position: relative; }
+        .res-item { background: #eff6ff; padding: 15px; border-radius: 8px; border-left: 5px solid var(--primary); }
         .res-val { font-size: 1.4rem; font-weight: bold; color: var(--primary); }
         .res-sub { font-size: 0.8rem; color: #64748b; margin-bottom: 5px; display: flex; align-items: center; }
 
@@ -50,16 +64,12 @@
         th, td { padding: 12px; text-align: center; border-bottom: 1px solid #e2e8f0; }
         .status-sun { color: var(--success); font-weight: bold; }
         .status-shadow { color: var(--secondary); opacity: 0.6; }
-
-        @media (max-width: 600px) {
-            .info-content { left: auto; right: -50px; transform: none; width: 280px; }
-        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>日照計算シミュレーター Pro v4</h1>
+    <h1>日照計算シミュレーター Pro v5</h1>
 
     <div class="card">
         <div class="grid">
@@ -103,27 +113,8 @@
                 </div>
                 <div class="res-item" style="border-left-color: var(--danger);">
                     <div class="res-sub">
-                        8:00〜16:00の日陰時間（累積）
-                        <span class="info-trigger">?
-                            <div class="info-content">
-                                <strong>日影規制の許容影時間（冬至基準）</strong>
-                                <table class="info-table">
-                                    <thead>
-                                        <tr><th>用途地域</th><th>距離ライン</th><th>測定面</th><th>許容影時間</th></tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr><td rowspan="2">第1,2種低層</td><td>〜5m</td><td>1.5m</td><td>2時間以内</td></tr>
-                                        <tr><td>5〜10m</td><td>1.5m</td><td>3時間以内</td></tr>
-                                        <tr><td rowspan="2">第1種中高層</td><td>〜5m</td><td>4m</td><td>2.5時間以内</td></tr>
-                                        <tr><td>5〜10m</td><td>4m</td><td>3.5時間以内</td></tr>
-                                        <tr><td rowspan="2">住居・準住居</td><td>〜5m</td><td>6.5m</td><td>3時間以内</td></tr>
-                                        <tr><td>5〜10m</td><td>6.5m</td><td>4時間以内</td></tr>
-                                        <tr><td rowspan="2">近隣商業</td><td>〜5m</td><td>6.5m</td><td>4時間以内</td></tr>
-                                        <tr><td>5〜10m</td><td>6.5m</td><td>5時間以内</td></tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </span>
+                        8:00〜16:00の日陰時間
+                        <button class="info-trigger" onclick="openModal()">?</button>
                     </div>
                     <div class="res-val" id="res_8to16_shadow" style="color:var(--danger)">-- 分</div>
                     <div style="font-size: 0.75rem;">日影規制の判定目安</div>
@@ -134,8 +125,8 @@
         <div class="card">
             <div class="tabs">
                 <button class="tab-btn active" onclick="changeInterval(60, this)">1時間</button>
-                <button class="tab-btn" onclick="changeInterval(30, this)">30</button>
-                <button class="tab-btn" onclick="changeInterval(10, this)">10</button>
+                <button class="tab-btn" onclick="changeInterval(30, this)">30分</button>
+                <button class="tab-btn" onclick="changeInterval(10, this)">10分</button>
             </div>
             <div class="table-wrapper">
                 <table id="detailTable">
@@ -155,8 +146,34 @@
     </div>
 </div>
 
+<div id="infoOverlay" class="info-overlay" onclick="closeModal()">
+    <div class="info-modal" onclick="event.stopPropagation()">
+        <strong>日影規制の許容影時間（冬至基準）</strong>
+        <table class="info-table">
+            <thead>
+                <tr><th>用途地域</th><th>距離</th><th>面</th><th>許容</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>第1,2種低層</td><td>〜5m</td><td>1.5m</td><td>2h内</td></tr>
+                <tr><td>第1,2種低層</td><td>5〜10m</td><td>1.5m</td><td>3h内</td></tr>
+                <tr><td>第1種中高層</td><td>〜5m</td><td>4m</td><td>2.5h内</td></tr>
+                <tr><td>第1種中高層</td><td>5〜10m</td><td>4m</td><td>3.5h内</td></tr>
+                <tr><td>住居・準住居</td><td>〜5m</td><td>6.5m</td><td>3h内</td></tr>
+                <tr><td>住居・準住居</td><td>5〜10m</td><td>6.5m</td><td>4h内</td></tr>
+                <tr><td>近隣商業</td><td>〜5m</td><td>6.5m</td><td>4h内</td></tr>
+                <tr><td>近隣商業</td><td>5〜10m</td><td>6.5m</td><td>5h内</td></tr>
+            </tbody>
+        </table>
+        <button class="close-modal" onclick="closeModal()">閉じる</button>
+    </div>
+</div>
+
 <script>
     let currentInterval = 60;
+
+    // Safari/iOS用モーダル制御
+    function openModal() { document.getElementById('infoOverlay').style.display = 'flex'; }
+    function closeModal() { document.getElementById('infoOverlay').style.display = 'none'; }
 
     function toggleDateInput(val) {
         document.getElementById('manualDate').style.display = (val === 'manual') ? 'block' : 'none';
