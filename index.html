@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日照計算シミュレーター MVP</title>
+    <style>
+        body { font-family: sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; background-color: #f4f7f6; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        h1 { color: #2c3e50; text-align: center; }
+        .input-group { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+        label { display: block; font-size: 0.9em; font-weight: bold; margin-bottom: 5px; }
+        input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 1em; font-weight: bold; }
+        button:hover { background: #2980b9; }
+        .result-box { text-align: center; padding: 15px; background: #e8f4fd; border-radius: 4px; }
+        .result-value { font-size: 2em; color: #e67e22; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.9em; }
+        th, td { padding: 10px; border-bottom: 1px solid #ddd; text-align: center; }
+        th { background: #f8f9fa; }
+        .status-sun { color: #f39c12; font-weight: bold; }
+        .status-shadow { color: #7f8c8d; }
+    </style>
+</head>
+<body>
+
+    <h1>日照計算シミュレーター</h1>
+
+    <div class="card">
+        <div class="input-group">
+            <div>
+                <label>緯度 (東京: 35.7)</label>
+                <input type="number" id="lat" value="35.7" step="0.1">
+            </div>
+            <div>
+                <label>日付 (冬至付近の赤緯: -23.4°)</label>
+                <input type="text" value="冬至 (12/22頃)" disabled>
+            </div>
+            <div>
+                <label>建物高さ (m)</label>
+                <input type="number" id="h_build" value="10" step="0.1">
+            </div>
+            <div>
+                <label>建物までの距離 (m)</label>
+                <input type="number" id="dist" value="15" step="0.1">
+            </div>
+            <div>
+                <label>観測点の高さ (m)</label>
+                <input type="number" id="h_obs" value="1.5" step="0.1">
+            </div>
+        </div>
+        <button onclick="calculate()">計算実行</button>
+    </div>
+
+    <div class="card result-box" id="resultCard" style="display:none;">
+        <div>推定日照時間 (08:00 - 16:00)</div>
+        <div class="result-value" id="totalSun">-- 分</div>
+    </div>
+
+    <div class="card" id="detailCard" style="display:none;">
+        <h3>時間別詳細</h3>
+        <table id="detailTable">
+            <thead>
+                <tr>
+                    <th>時刻</th>
+                    <th>太陽高度</th>
+                    <th>影の長さ (m)</th>
+                    <th>判定</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <script>
+        function calculate() {
+            const lat = parseFloat(document.getElementById('lat').value) * Math.PI / 180;
+            const hBuild = parseFloat(document.getElementById('h_build').value);
+            const dist = parseFloat(document.getElementById('dist').value);
+            const hObs = parseFloat(document.getElementById('h_obs').value);
+            
+            const delta = -23.44 * Math.PI / 180; // 冬至の赤緯
+            const relativeHeight = hBuild - hObs;
+            
+            let sunMinutes = 0;
+            const tbody = document.querySelector('#detailTable tbody');
+            tbody.innerHTML = '';
+
+            // 8:00から16:00まで10分刻み
+            for (let hour = 8; hour <= 16; hour += 1/6) {
+                const h_time = (hour - 12) * 15 * Math.PI / 180; // 時角
+                
+                // 太陽高度 (sin h)
+                const sinAlt = Math.sin(lat) * Math.sin(delta) + Math.cos(lat) * Math.cos(delta) * Math.cos(h_time);
+                const alt = Math.asin(sinAlt);
+                const altDeg = alt * 180 / Math.PI;
+
+                let shadowLen = 0;
+                let isSun = false;
+
+                if (altDeg > 0) {
+                    shadowLen = relativeHeight / Math.tan(alt);
+                    // 建物までの距離より影が短ければ日照あり
+                    if (shadowLen < dist) {
+                        isSun = true;
+                        sunMinutes += 10;
+                    }
+                }
+
+                // 結果の表示処理
+                const timeStr = `${Math.floor(hour)}:${String(Math.round((hour % 1) * 60)).padStart(2, '0')}`;
+                const row = `<tr>
+                    <td>${timeStr}</td>
+                    <td>${altDeg > 0 ? altDeg.toFixed(1) + '°' : '日没'}</td>
+                    <td>${altDeg > 0 ? shadowLen.toFixed(2) + 'm' : '-'}</td>
+                    <td class="${isSun ? 'status-sun' : 'status-shadow'}">${isSun ? '☀️ 日照' : '☁️ 日陰'}</td>
+                </tr>`;
+                tbody.insertAdjacentHTML('beforeend', row);
+            }
+
+            document.getElementById('totalSun').innerText = sunMinutes + " 分";
+            document.getElementById('resultCard').style.display = 'block';
+            document.getElementById('detailCard').style.display = 'block';
+        }
+    </script>
+</body>
+</html>
