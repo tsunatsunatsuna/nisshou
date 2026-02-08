@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>日照計算シミュレーター Pro v3</title>
+    <title>日照計算シミュレーター Pro v4</title>
     <style>
         :root {
             --primary: #2563eb;
@@ -22,40 +22,44 @@
         label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; display: flex; align-items: center; }
         input, select { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
         
-        /* Tooltip */
+        /* Tooltip Style */
         .info-trigger { margin-left: 8px; cursor: help; background: var(--secondary); color: white; width: 18px; height: 18px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; position: relative; }
         .info-content {
             display: none; position: absolute; top: 25px; left: 50%; transform: translateX(-50%);
-            width: 300px; background: white; color: #333; padding: 15px; border-radius: 8px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2); z-index: 100; border: 1px solid #ddd; font-weight: normal; font-size: 0.75rem;
+            width: 340px; background: white; color: #333; padding: 12px; border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2); z-index: 100; border: 1px solid #ddd; font-weight: normal; font-size: 0.7rem;
         }
         .info-trigger:hover .info-content { display: block; }
+        .info-table { width: 100%; border-collapse: collapse; margin-top: 5px; line-height: 1.2; }
+        .info-table th, .info-table td { border: 1px solid #eee; padding: 4px; text-align: left; }
+        .info-table th { background: #f8fafc; font-size: 0.65rem; }
 
         button.main-btn { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 1.1rem; font-weight: bold; margin-top: 10px; }
         
-        .tabs { display: flex; gap: 5px; margin-top: 20px; border-bottom: 2px solid #e2e8f0; overflow-x: auto; }
-        .tab-btn { padding: 10px 20px; border: none; background: none; cursor: pointer; color: var(--secondary); border-bottom: 2px solid transparent; white-space: nowrap; }
+        .tabs { display: flex; gap: 5px; margin-top: 20px; border-bottom: 2px solid #e2e8f0; }
+        .tab-btn { padding: 10px 20px; border: none; background: none; cursor: pointer; color: var(--secondary); border-bottom: 2px solid transparent; }
         .tab-btn.active { color: var(--primary); border-bottom: 2px solid var(--primary); font-weight: bold; }
 
-        /* Results Display */
         .res-display { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; margin-top: 10px; }
-        .res-item { background: #eff6ff; padding: 15px; border-radius: 8px; border-left: 5px solid var(--primary); }
+        .res-item { background: #eff6ff; padding: 15px; border-radius: 8px; border-left: 5px solid var(--primary); position: relative; }
         .res-val { font-size: 1.4rem; font-weight: bold; color: var(--primary); }
-        .res-sub { font-size: 0.8rem; color: #64748b; margin-bottom: 5px; }
-        .danger-text { color: var(--danger); }
+        .res-sub { font-size: 0.8rem; color: #64748b; margin-bottom: 5px; display: flex; align-items: center; }
 
         .table-wrapper { overflow-x: auto; margin-top: 10px; border: 1px solid #e2e8f0; border-radius: 8px; }
         table { width: 100%; border-collapse: collapse; font-size: 0.85rem; background: white; }
         th, td { padding: 12px; text-align: center; border-bottom: 1px solid #e2e8f0; }
-        th { background: #f8fafc; }
         .status-sun { color: var(--success); font-weight: bold; }
         .status-shadow { color: var(--secondary); opacity: 0.6; }
+
+        @media (max-width: 600px) {
+            .info-content { left: auto; right: -50px; transform: none; width: 280px; }
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>日照計算シミュレーター Pro v3</h1>
+    <h1>日照計算シミュレーター Pro v4</h1>
 
     <div class="card">
         <div class="grid">
@@ -63,7 +67,7 @@
                 <label>日付設定</label>
                 <select id="datePreset" onchange="toggleDateInput(this.value)">
                     <option value="winter">冬至 (12/22頃)</option>
-                    <option value="spring">春分・秋分 (3/21, 9/23頃)</option>
+                    <option value="spring">春分・秋分 (3/21頃)</option>
                     <option value="summer">夏至 (6/21頃)</option>
                     <option value="manual">手動で日付を選ぶ</option>
                 </select>
@@ -74,18 +78,7 @@
                 <input type="number" id="lat" value="35.7" step="0.1">
             </div>
             <div class="field">
-                <label>
-                    判定面の高さ (測定面)
-                    <span class="info-trigger">?
-                        <div class="info-content">
-                            <strong>用途地域別 測定面/対象の目安</strong>
-                            <p>・第1,2種低層: 1.5m (1階窓付近)</p>
-                            <p>・中高層専用: 4m (2階) / 6.5m (3階)</p>
-                            <p>・住居地域: 4m / 6.5m (中高層住宅想定)</p>
-                            <p>・商業/準工業: 6.5m (2〜3階レベル)</p>
-                        </div>
-                    </span>
-                </label>
+                <label>判定面の高さ (測定面)</label>
                 <input type="number" id="h_obs" value="6.5" step="0.1">
             </div>
             <div class="field">
@@ -109,8 +102,30 @@
                     <div style="font-size: 0.75rem;" id="sun_range_text">--:-- 〜 --:--</div>
                 </div>
                 <div class="res-item" style="border-left-color: var(--danger);">
-                    <div class="res-sub">8:00〜16:00の日陰時間（累積）</div>
-                    <div class="res-val danger-text" id="res_8to16_shadow">-- 分</div>
+                    <div class="res-sub">
+                        8:00〜16:00の日陰時間（累積）
+                        <span class="info-trigger">?
+                            <div class="info-content">
+                                <strong>日影規制の許容影時間（冬至基準）</strong>
+                                <table class="info-table">
+                                    <thead>
+                                        <tr><th>用途地域</th><th>距離ライン</th><th>測定面</th><th>許容影時間</th></tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td rowspan="2">第1,2種低層</td><td>〜5m</td><td>1.5m</td><td>2時間以内</td></tr>
+                                        <tr><td>5〜10m</td><td>1.5m</td><td>3時間以内</td></tr>
+                                        <tr><td rowspan="2">第1種中高層</td><td>〜5m</td><td>4m</td><td>2.5時間以内</td></tr>
+                                        <tr><td>5〜10m</td><td>4m</td><td>3.5時間以内</td></tr>
+                                        <tr><td rowspan="2">住居・準住居</td><td>〜5m</td><td>6.5m</td><td>3時間以内</td></tr>
+                                        <tr><td>5〜10m</td><td>6.5m</td><td>4時間以内</td></tr>
+                                        <tr><td rowspan="2">近隣商業</td><td>〜5m</td><td>6.5m</td><td>4時間以内</td></tr>
+                                        <tr><td>5〜10m</td><td>6.5m</td><td>5時間以内</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </span>
+                    </div>
+                    <div class="res-val" id="res_8to16_shadow" style="color:var(--danger)">-- 分</div>
                     <div style="font-size: 0.75rem;">日影規制の判定目安</div>
                 </div>
             </div>
@@ -118,9 +133,9 @@
 
         <div class="card">
             <div class="tabs">
-                <button class="tab-btn active" onclick="changeInterval(60, this)">一時間</button>
-                <button class="tab-btn" onclick="changeInterval(30, this)">三十分</button>
-                <button class="tab-btn" onclick="changeInterval(10, this)">十分</button>
+                <button class="tab-btn active" onclick="changeInterval(60, this)">1時間</button>
+                <button class="tab-btn" onclick="changeInterval(30, this)">30</button>
+                <button class="tab-btn" onclick="changeInterval(10, this)">10</button>
             </div>
             <div class="table-wrapper">
                 <table id="detailTable">
@@ -152,11 +167,86 @@
         if (preset === 'winter') return -23.44;
         if (preset === 'summer') return 23.44;
         if (preset === 'spring') return 0;
-        
-        // 手動計算（近似値）
         const dateVal = new Date(document.getElementById('manualDate').value);
         if (isNaN(dateVal)) return -23.44; 
         const start = new Date(dateVal.getFullYear(), 0, 0);
-        const diff = dateVal - start;
-        const oneDay = 1000 * 60 * 60 * 24;
-        const dayOfYear = Math.floor(diff / one
+        const dayOfYear = Math.floor((dateVal - start) / (1000 * 60 * 60 * 24));
+        return 23.44 * Math.sin(2 * Math.PI * (dayOfYear - 80) / 365.25);
+    }
+
+    function changeInterval(min, btn) {
+        currentInterval = min;
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        calculate();
+    }
+
+    function calculate() {
+        const lat = parseFloat(document.getElementById('lat').value) * Math.PI / 180;
+        const hBuild = parseFloat(document.getElementById('h_build').value);
+        const dist = parseFloat(document.getElementById('dist').value);
+        const hObsSelected = parseFloat(document.getElementById('h_obs').value);
+        const delta = getDeclination() * Math.PI / 180;
+        
+        document.getElementById('th_custom').innerText = `指定(${hObsSelected}m)`;
+
+        let cosH = -Math.tan(lat) * Math.tan(delta);
+        cosH = Math.max(-1, Math.min(1, cosH));
+        const sunriseHour = 12 - (Math.acos(cosH) * 180 / Math.PI / 15);
+        const sunsetHour = 12 + (Math.acos(cosH) * 180 / Math.PI / 15);
+
+        document.getElementById('sun_range_text').innerText = 
+            `可視時間: ${formatTime(sunriseHour)} 〜 ${formatTime(sunsetHour)}`;
+
+        let totalSunMinutes = 0;
+        let shadow8to16Minutes = 0;
+        const tbody = document.querySelector('#detailTable tbody');
+        tbody.innerHTML = '';
+
+        for (let m = 0; m <= 24 * 60; m += 10) {
+            const hour = m / 60;
+            const h_time = (hour - 12) * 15 * Math.PI / 180;
+            const sinAlt = Math.sin(lat) * Math.sin(delta) + Math.cos(lat) * Math.cos(delta) * Math.cos(h_time);
+            const alt = Math.asin(sinAlt);
+            const altDeg = alt * 180 / Math.PI;
+
+            const checkSun = (hObs) => {
+                if (altDeg <= 0) return false;
+                const relH = hBuild - hObs;
+                if (relH <= 0) return true;
+                return (relH / Math.tan(alt)) < dist;
+            };
+
+            const isSunSelected = checkSun(hObsSelected);
+            if (altDeg > 0 && isSunSelected) totalSunMinutes += 10;
+            if (hour >= 8 && hour <= 16 && altDeg > 0 && !isSunSelected) shadow8to16Minutes += 10;
+
+            if (m % currentInterval === 0 && hour >= Math.floor(sunriseHour) && hour <= Math.ceil(sunsetHour)) {
+                const isSun1F = checkSun(2.0);
+                const isSun2F = checkSun(4.0);
+                tbody.insertAdjacentHTML('beforeend', `<tr>
+                    <td style="font-weight:bold;">${formatTime(hour)}</td>
+                    <td>${altDeg > 0 ? altDeg.toFixed(1) + '°' : '日没'}</td>
+                    <td class="${isSun1F ? 'status-sun' : 'status-shadow'}">${isSun1F ? '☀️' : '影'}</td>
+                    <td class="${isSun2F ? 'status-sun' : 'status-shadow'}">${isSun2F ? '☀️' : '影'}</td>
+                    <td class="${isSunSelected ? 'status-sun' : 'status-shadow'}" style="background:#f0f9ff;">${isSunSelected ? '☀️' : '影'}</td>
+                </tr>`);
+            }
+        }
+
+        document.getElementById('res_total_sun').innerText = totalSunMinutes + " 分";
+        document.getElementById('res_8to16_shadow').innerText = shadow8to16Minutes + " 分";
+        document.getElementById('resultsArea').style.display = 'block';
+    }
+
+    function formatTime(h) {
+        const hh = Math.floor(h);
+        const mm = Math.round((h % 1) * 60);
+        return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+    }
+
+    calculate();
+</script>
+
+</body>
+</html>
